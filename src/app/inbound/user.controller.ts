@@ -1,4 +1,4 @@
-import { Router, type Request, type Response, type NextFunction } from "express";
+import { Router, type Request, type Response } from "express";
 
 import type {
   GetAllUsersUseCase,
@@ -148,7 +148,6 @@ function userErrorHandler(
   err: unknown,
   _req: Request,
   res: Response,
-  _next: NextFunction,
 ) {
   if (err instanceof UserNotFoundError) {
     res.status(404).json({ message: err.message });

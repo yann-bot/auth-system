@@ -1,4 +1,4 @@
-import { Router, type Request, type Response, type NextFunction } from "express";
+import { Router, type Request, type Response} from "express";
 
 import type {
   SignInUseCase,
@@ -106,9 +106,7 @@ function toUserDTO(user: User) {
 
 function authErrorHandler(
   err: unknown,
-  _req: Request,
   res: Response,
-  _next: NextFunction,
 ) {
   if (err instanceof Error) {
     res.status(400).json({ message: err.message });
