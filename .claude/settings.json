@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bunx @redocly/cli lint /home/soundwave/projet-perso/micro/auth-system/docs/openapi.yaml)"
+    ]
+  }
+}

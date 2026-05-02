@@ -1,0 +1,494 @@
+openapi: 3.0.3
+info:
+  title: auth-system API
+  version: 0.1.0
+  description: |
+    API du noyau d'authentification `auth-system`.
+
+    Architecture hexagonale : les routes HTTP appellent des **use cases** qui s'appuient
+    sur un port `AuthProvider` (implémenté par Better Auth) et un port `UserRepo`
+    (implémenté en SQLite/libsql via Drizzle).
+
+    Toutes les routes protégées attendent un header `Authorization: Bearer <sessionToken>`
+    obtenu via `POST /users` (sign-up) ou `POST /auth/sign-in`.
+  contact:
+    name: auth-system
+  license:
+    name: UNLICENSED
+
+servers:
+  - url: http://localhost:3000
+    description: Environnement de développement local
+
+tags:
+  - name: Auth
+    description: Connexion, déconnexion, session, réinitialisation de mot de passe.
+  - name: Users
+    description: Création, lecture, mise à jour et suppression d'utilisateurs.
+  - name: Health
+    description: Endpoints utilitaires.
+
+security: []
+
+paths:
+  /:
+    get:
+      tags: [Health]
+      operationId: getRoot
+      summary: Hello World
+      description: Endpoint racine, utile pour vérifier que le serveur est up.
+      responses:
+        "200":
+          description: Le serveur répond.
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Hello World!
+
+  /auth/sign-in:
+    post:
+      tags: [Auth]
+      operationId: signIn
+      summary: Connexion par email/mot de passe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignInRequest"
+      responses:
+        "200":
+          description: Authentification réussie.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignInResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/sign-out:
+    post:
+      tags: [Auth]
+      operationId: signOut
+      summary: Déconnexion (invalide la session courante)
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Déconnexion effectuée.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/session:
+    get:
+      tags: [Auth]
+      operationId: getCurrentSession
+      summary: Récupère la session courante
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Session valide.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "401":
+          description: Session manquante, invalide ou expirée.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/forget-password:
+    post:
+      tags: [Auth]
+      operationId: forgetPassword
+      summary: Demande de réinitialisation de mot de passe
+      description: |
+        Déclenche l'envoi d'un email contenant un lien vers
+        `${FRONTEND_URL}/reset-password?token=...`.
+
+        La réponse est volontairement uniforme (`204`) que l'email existe ou non,
+        afin de ne pas divulguer l'existence d'un compte.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgetPasswordRequest"
+      responses:
+        "204":
+          description: Demande prise en compte (email envoyé si le compte existe).
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      operationId: resetPassword
+      summary: Définit un nouveau mot de passe à partir d'un token de reset
+      description: |
+        Le `token` provient du lien envoyé par `POST /auth/forget-password`.
+        Aucune session n'est requise — le token fait foi.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "204":
+          description: Mot de passe mis à jour.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /users:
+    get:
+      tags: [Users]
+      operationId: listUsers
+      summary: Liste tous les utilisateurs
+      responses:
+        "200":
+          description: Liste des utilisateurs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+    post:
+      tags: [Users]
+      operationId: createUser
+      summary: Création d'un utilisateur (sign-up)
+      description: Crée un compte et renvoie une session immédiatement utilisable.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Utilisateur créé.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignInResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /users/by-email/{email}:
+    get:
+      tags: [Users]
+      operationId: getUserByEmail
+      summary: Récupère un utilisateur par email
+      parameters:
+        - in: path
+          name: email
+          required: true
+          schema:
+            type: string
+            format: email
+          description: Email URL-encodé.
+          example: alice%40example.com
+      responses:
+        "200":
+          description: Utilisateur trouvé.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      operationId: getUserById
+      summary: Récupère un utilisateur par identifiant
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Identifiant unique de l'utilisateur.
+      responses:
+        "200":
+          description: Utilisateur trouvé.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /users/me:
+    patch:
+      tags: [Users]
+      operationId: updateProfile
+      summary: Met à jour son profil (nom et/ou image)
+      description: |
+        Met à jour `name` et/ou `image`. Pour modifier l'email ou le mot de passe,
+        utiliser respectivement `PATCH /users/me/email` et `PATCH /users/me/password`.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+      responses:
+        "200":
+          description: Profil mis à jour.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+    delete:
+      tags: [Users]
+      operationId: deleteCurrentUser
+      summary: Supprime son propre compte
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Compte supprimé.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /users/me/email:
+    patch:
+      tags: [Users]
+      operationId: changeEmail
+      summary: Change l'email de l'utilisateur courant
+      description: |
+        Selon la configuration Better Auth (`changeEmail`), la modification peut
+        nécessiter une vérification par email avant d'être effective.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangeEmailRequest"
+      responses:
+        "204":
+          description: Demande de changement d'email prise en compte.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /users/me/password:
+    patch:
+      tags: [Users]
+      operationId: changePassword
+      summary: Change le mot de passe de l'utilisateur courant
+      description: Requiert le mot de passe actuel pour autoriser le changement.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "204":
+          description: Mot de passe mis à jour.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-session-token
+      description: |
+        Token de session retourné par `POST /users` (sign-up) ou
+        `POST /auth/sign-in`, à fournir dans le header `Authorization: Bearer <token>`.
+
+  schemas:
+    User:
+      type: object
+      required: [id, name, email, emailVerified, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          example: 8f3b2c1a-...-9d
+        name:
+          type: string
+          example: Alice
+        email:
+          type: string
+          format: email
+          example: alice@example.com
+        image:
+          type: string
+          nullable: true
+          example: https://cdn.example.com/avatars/alice.png
+        emailVerified:
+          type: boolean
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SignInRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: alice@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: hunter2hunter
+
+    SignInResponse:
+      type: object
+      required: [user, sessionToken]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        sessionToken:
+          type: string
+          description: "À transmettre dans le header `Authorization: Bearer <sessionToken>`."
+
+    SessionResponse:
+      type: object
+      required: [user]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+
+    CreateUserRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+          example: Alice
+        email:
+          type: string
+          format: email
+          example: alice@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: hunter2hunter
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Alice Liddell
+        image:
+          type: string
+          example: https://cdn.example.com/avatars/alice.png
+      additionalProperties: false
+
+    ChangeEmailRequest:
+      type: object
+      required: [newEmail]
+      properties:
+        newEmail:
+          type: string
+          format: email
+          example: alice.new@example.com
+
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          minLength: 8
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+
+    ForgetPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          example: alice@example.com
+        redirectTo:
+          type: string
+          description: |
+            URL vers laquelle l'utilisateur sera redirigé après avoir cliqué sur
+            le lien de réinitialisation.
+          example: https://app.example.com/reset-password
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          description: Token de reset reçu par email.
+        newPassword:
+          type: string
+          format: password
+          minLength: 8
+
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          example: User not found
+
+  responses:
+    BadRequest:
+      description: Données de requête invalides ou règle métier violée (ex. email mal formé).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Aucun token de session valide n'a été fourni.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Ressource non trouvée.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"

@@ -25,4 +25,12 @@ export interface AuthProvider {
   getSession(sessionToken: string): Promise<SessionInfo | null>;
   updateUser(sessionToken: string, data: UpdateUserData): Promise<User>;
   deleteUser(sessionToken: string): Promise<void>;
+  changeEmail(sessionToken: string, newEmail: Email): Promise<void>;
+  changePassword(
+    sessionToken: string,
+    currentPassword: Password,
+    newPassword: Password,
+  ): Promise<void>;
+  forgetPassword(email: Email, redirectTo?: string): Promise<void>;
+  resetPassword(token: string, newPassword: Password): Promise<void>;
 }

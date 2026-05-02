@@ -6,6 +6,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/bun": "latest",
+    "@types/swagger-ui-express": "^4.1.8",
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
@@ -17,7 +18,7 @@
     "vitest": "^4.1.5"
   },
   "scripts": {
-    "dev": "bun run ./src/main.ts",
+    "dev": "bun run ./src/server.ts",
     "auth:generate": "bunx @better-auth/cli@latest generate --config ./src/app/outbound/services/better-auth.ts --output ./src/infrastructure/db/schema.ts",
     "db:generate": "drizzle-kit generate --config=drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate",
@@ -34,8 +35,12 @@
   },
   "dependencies": {
     "@libsql/client": "^0.17.3",
+    "@types/express": "^5.0.6",
     "better-auth": "^1.6.9",
     "dotenv": "^17.4.2",
-    "drizzle-orm": "^0.45.2"
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "swagger-ui-express": "^5.0.1",
+    "yaml": "^2.8.3"
   }
 }

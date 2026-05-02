@@ -10,6 +10,7 @@ import type {
 } from "../../core/application/ports/user.ports";
 import { User } from "../../core/domain/entities/user.entity";
 import { Email } from "../../core/domain/value-objects/email.value-object";
+import type { Password } from "../../core/domain/value-objects/password.value-object";
 import { auth } from "./better-auth";
 
 type BetterAuthUser = {
@@ -85,8 +86,6 @@ export class BetterAuthAdapter implements AuthProvider {
     sessionToken: string,
     data: UpdateUserData,
   ): Promise<User> {
-    // better-auth's updateUser endpoint only supports name/image. Email and
-    // password changes go through changeEmail / changePassword endpoints.
     const body: { name?: string; image?: string } = {};
     if (data.name !== undefined) body.name = data.name;
     if (data.image !== undefined) body.image = data.image;
@@ -109,6 +108,45 @@ export class BetterAuthAdapter implements AuthProvider {
     await auth.api.deleteUser({
       body: {},
       headers: bearerHeaders(sessionToken),
+    });
+  }
+
+  async changeEmail(sessionToken: string, newEmail: Email): Promise<void> {
+    await auth.api.changeEmail({
+      body: { newEmail: newEmail.getValue() },
+      headers: bearerHeaders(sessionToken),
+    });
+  }
+
+  async changePassword(
+    sessionToken: string,
+    currentPassword: Password,
+    newPassword: Password,
+  ): Promise<void> {
+    await auth.api.changePassword({
+      body: {
+        currentPassword: currentPassword.getValue(),
+        newPassword: newPassword.getValue(),
+      },
+      headers: bearerHeaders(sessionToken),
+    });
+  }
+
+  async forgetPassword(email: Email, redirectTo?: string): Promise<void> {
+    await auth.api.requestPasswordReset({
+      body: {
+        email: email.getValue(),
+        ...(redirectTo !== undefined && { redirectTo }),
+      },
+    });
+  }
+
+  async resetPassword(token: string, newPassword: Password): Promise<void> {
+    await auth.api.resetPassword({
+      body: {
+        token,
+        newPassword: newPassword.getValue(),
+      },
     });
   }
 }

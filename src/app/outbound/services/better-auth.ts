@@ -2,6 +2,13 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer } from "better-auth/plugins/bearer";
 import db, { schema } from "../../../infrastructure/db";
+import { emailSender } from "./console-email.adapter";
+import { resetPasswordTemplate } from "./email-templates/reset-password.template";
+
+const FRONTEND_URL =
+  process.env.FRONTEND_URL ??
+  process.env.BETTER_AUTH_URL ??
+  "http://localhost:3000";
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
@@ -23,6 +30,19 @@ export const auth = betterAuth({
     maxPasswordLength: 128,
     autoSignIn: true,
     resetPasswordTokenExpiresIn: 60 * 60, // 1h
+    sendResetPassword: async ({ user, token }) => {
+      try {
+        const resetUrl = `${FRONTEND_URL}/reset-password?token=${encodeURIComponent(token)}`;
+        const message = resetPasswordTemplate({
+          userName: user.name || user.email,
+          resetUrl,
+        });
+        await emailSender.send({ to: user.email, ...message });
+      } catch (err) {
+        // Swallow to avoid leaking account existence via timing/error.
+        console.error("[auth] sendResetPassword failed:", err);
+      }
+    },
   },
 
   session: {

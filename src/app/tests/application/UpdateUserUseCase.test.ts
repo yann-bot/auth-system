@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { UpdateUserUseCase } from "@src/app/core/application/usesCases/UpdateUserCase";
+import { UpdateUserUseCase } from "@src/app/core/application/usesCases/UpdateUserUseCase";
 import type { AuthProvider } from "@src/app/core/application/ports/auth.provider";
 import type { UpdateUserData } from "@src/app/core/application/ports/user.ports";
 import { User } from "@src/app/core/domain/entities/user.entity";

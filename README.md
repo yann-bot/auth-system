@@ -6,7 +6,7 @@ L'idee est simple: le domaine et les cas d'usage ne doivent pas dependre d'Expre
 
 Pour cette premiere iteration, le projet s'oriente vers:
 
-- `Hono` comme serveur HTTP cible
+- `Express` comme serveur HTTP cible
 - `Better Auth` comme provider d'authentification
 - `Drizzle + SQLite/libsql` pour la persistence
 
@@ -52,7 +52,7 @@ Le depot contient deja les briques principales suivantes:
 - un schema Drizzle compatible avec Better Auth
 - des tests unitaires sur le domaine et l'application
 
-Important: l'integration `Better Auth` est deja presente dans le code, mais le bootstrap serveur HTTP est encore en cours de finalisation. `Hono` est la cible immediate, mais il n'est pas encore completement branche dans les fichiers d'entree actuels.
+Important: l'integration `Better Auth` est deja presente dans le code, mais le bootstrap serveur HTTP est encore en cours de finalisation. `Express` est la cible immediate, mais il n'est pas encore completement branche dans les fichiers d'entree actuels.
 
 ## Structure du projet
 
@@ -180,7 +180,7 @@ Le coeur metier, lui, doit rester stable.
 
 ## Roadmap proche
 
-- brancher completement `Hono` comme serveur HTTP principal
+- brancher completement `Express` comme serveur HTTP principal
 - finaliser la couche `inbound` et ses controllers/routes
 - etendre les use cases autour de la connexion/session si necessaire
 - ajouter d'autres adaptateurs serveur ou provider pour valider la remplacabilite
@@ -189,4 +189,4 @@ Le coeur metier, lui, doit rester stable.
 
 `auth-system` n'est pas juste un setup d'auth pour une stack donnee. C'est une base d'authentification orientee domaine, pensee pour etre reutilisee, testee et adaptee a plusieurs contextes techniques.
 
-La premiere integration visee est `Hono + Better Auth`, mais l'architecture a ete construite pour que cette combinaison reste un detail d'implementation, pas une contrainte du coeur metier.
+La premiere integration visee est `Express + Better Auth`, mais l'architecture a ete construite pour que cette combinaison reste un detail d'implementation, pas une contrainte du coeur metier.
