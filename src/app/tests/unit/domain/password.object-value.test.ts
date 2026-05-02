@@ -1,4 +1,4 @@
-import { Password } from "../../core/domain/value-objects/password.value-object";
+import { Password } from "../../../core/domain/value-objects/password.value-object";
 import {expect, test} from "vitest"
 
 test("should create a password value object", () => {
